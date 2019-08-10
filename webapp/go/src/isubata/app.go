@@ -75,7 +75,6 @@ func init() {
 			break
 		}
 		log.Println(err)
-		time.Sleep(time.Second * 3)
 	}
 
 	db.SetMaxOpenConns(20)
@@ -129,6 +128,7 @@ func queryMessages(chanID, lastID int64) ([]Message, error) {
 	return msgs, err
 }
 
+// TODO: session 管理に無駄がありそう
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
 	var userID int64
@@ -680,6 +680,7 @@ func postProfile(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/")
 }
 
+// TODO: 画像データを nginx から配信できるようにする
 func getIcon(c echo.Context) error {
 	var name string
 	var data []byte
@@ -752,7 +753,6 @@ func main() {
 
 	e.GET("add_channel", getAddChannel)
 	e.POST("add_channel", postAddChannel)
-	e.GET("/icons/:file_name", getIcon)
 
 	e.Start(":5000")
 }
