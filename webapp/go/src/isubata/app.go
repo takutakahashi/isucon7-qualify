@@ -128,6 +128,7 @@ func queryMessages(chanID, lastID int64) ([]Message, error) {
 	return msgs, err
 }
 
+// TODO: session 管理に無駄がありそう
 func sessUserID(c echo.Context) int64 {
 	sess, _ := session.Get("session", c)
 	var userID int64
@@ -415,6 +416,8 @@ func queryChannels() ([]int64, error) {
 }
 
 func queryHaveRead(userID, chID int64) (int64, error) {
+
+	// TODO: function のなかで struct を定義しない
 	type HaveRead struct {
 		UserID    int64     `db:"user_id"`
 		ChannelID int64     `db:"channel_id"`
@@ -440,8 +443,6 @@ func fetchUnread(c echo.Context) error {
 	if userID == 0 {
 		return c.NoContent(http.StatusForbidden)
 	}
-
-	time.Sleep(time.Second)
 
 	channels, err := queryChannels()
 	if err != nil {
@@ -720,11 +721,20 @@ func tRange(a, b int64) []int64 {
 }
 
 func main() {
+
+	// TODO: 1. ER図とAPIシーケンス図をざっくり書く(各テーブルの依存関係が見えるように)
+	// TODO: 2. ↑を元に，シャーディング可能なテーブルがないか考察する
+	// TODO: 3. DBの上にLBを建て，シャーディングする
+	// TODO: 4. POSTを受けるAPIを固定して，POSTを受けたらで非同期同期するなどもよい nginx でロードバランシング
+	// TODO: 戦略
+	// TODO: 戦略
 	e := echo.New()
 	funcs := template.FuncMap{
 		"add":    tAdd,
 		"xrange": tRange,
 	}
+
+	// TODO: footer には何も書いてなかったので，footer は template 使わずにベタがきできる
 	e.Renderer = &Renderer{
 		templates: template.Must(template.New("").Funcs(funcs).ParseGlob("views/*.html")),
 	}
