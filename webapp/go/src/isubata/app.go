@@ -32,6 +32,7 @@ const (
 var (
 	db            *sqlx.DB
 	ErrBadReqeust = echo.NewHTTPError(http.StatusBadRequest)
+	channels      []int64
 )
 
 type Renderer struct {
@@ -207,6 +208,7 @@ func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM channel WHERE id > 10")
 	db.MustExec("DELETE FROM message WHERE id > 10000")
 	db.MustExec("DELETE FROM haveread")
+	db.Select(&channels, "SELECT id FROM channel")
 	return c.String(204, "")
 }
 
@@ -409,9 +411,7 @@ func getMessage(c echo.Context) error {
 }
 
 func queryChannels() ([]int64, error) {
-	res := []int64{}
-	err := db.Select(&res, "SELECT id FROM channel")
-	return res, err
+	return channels, nil
 }
 
 type HaveRead struct {
