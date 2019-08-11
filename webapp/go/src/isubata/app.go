@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -39,12 +40,14 @@ type Renderer struct {
 }
 
 func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+
 	return r.templates.ExecuteTemplate(w, name, data)
 }
 
 func init() {
 	seedBuf := make([]byte, 8)
 	crand.Read(seedBuf)
+
 	rand.Seed(int64(binary.LittleEndian.Uint64(seedBuf)))
 
 	db_host := os.Getenv("ISUBATA_DB_HOST")
@@ -83,8 +86,9 @@ func init() {
 }
 
 type User struct {
-	ID          int64     `json:"-" db:"id"`
-	Name        string    `json:"name" db:"name"`
+	ID   int64  `json:"-" db:"id"`
+	Name string `json:"name" db:"name"`
+
 	Salt        string    `json:"-" db:"salt"`
 	Password    string    `json:"-" db:"password"`
 	DisplayName string    `json:"display_name" db:"display_name"`
@@ -98,6 +102,7 @@ func getUser(userID int64) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
+
 		return nil, err
 	}
 	return &u, nil
@@ -110,6 +115,7 @@ func addMessage(channelID, userID int64, content string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return res.LastInsertId()
 }
 
@@ -678,6 +684,27 @@ func postProfile(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/")
+}
+
+func parseIcons() {
+
+	var names = []string{}
+	var data = [][]byte{}
+	db.QueryRow("SELECT name FROM image").Scan(&names, &data)
+}
+
+func parseIcon(fileName string) error {
+	var name string
+	var data []byte
+	err := db.QueryRow("SELECT name, data FROM image WHERE name = ?",
+		fileName).Scan(&name, &data)
+	if err == sql.ErrNoRows {
+		return echo.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // TODO: 画像データを nginx から配信できるようにする
