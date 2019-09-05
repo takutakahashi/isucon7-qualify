@@ -81,6 +81,32 @@ func init() {
 	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(5 * time.Minute)
 	log.Printf("Succeeded to connect db.")
+
+	os.Mkdir("/home/isucon/isubata/webapp/public/icons", 0777)
+
+	type Img struct {
+		Id   int    `db:"id"`
+		Name string `db:"name"`
+		Data []byte `db:"data"`
+	}
+
+	var img Img
+	rows, err := db.Queryx("SELECT name, data FROM image")
+
+	if err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+
+		err := rows.StructScan(&img)
+
+		if err != nil {
+			panic(err)
+		}
+
+		_ = ioutil.WriteFile(fmt.Sprintf("/home/isucon/isubata/webapp/public/icons/%s", img.Name), img.Data, 0644)
+	}
 }
 
 type User struct {
@@ -352,6 +378,7 @@ func postMessage(c echo.Context) error {
 }
 
 func jsonifyMessage(m Message) (map[string]interface{}, error) {
+
 	u := User{}
 	err := db.Get(&u, "SELECT name, display_name, avatar_icon FROM user WHERE id = ?",
 		m.UserID)
@@ -631,7 +658,10 @@ func postProfile(c echo.Context) error {
 	avatarName := ""
 	var avatarData []byte
 
+	var ext string
+
 	if fh, err := c.FormFile("avatar_icon"); err == http.ErrMissingFile {
+
 		// no file upload
 	} else if err != nil {
 		return err
@@ -640,7 +670,7 @@ func postProfile(c echo.Context) error {
 		if dotPos < 0 {
 			return ErrBadReqeust
 		}
-		ext := fh.Filename[dotPos:]
+		ext = fh.Filename[dotPos:]
 		switch ext {
 		case ".jpg", ".jpeg", ".png", ".gif":
 			break
@@ -663,10 +693,13 @@ func postProfile(c echo.Context) error {
 	}
 
 	if avatarName != "" && len(avatarData) > 0 {
-		_, err := db.Exec("INSERT INTO image (name, data) VALUES (?, ?)", avatarName, avatarData)
+
+		err := ioutil.WriteFile(fmt.Sprintf("/home/isucon/isubata/webapp/public/icons/%s", avatarName), avatarData, 0644)
+		// _, err := db.Exec("INSERT INTO image (name, data) VALUES (?, ?)", avatarName, avatarData)
 		if err != nil {
 			return err
 		}
+
 		_, err = db.Exec("UPDATE user SET avatar_icon = ? WHERE id = ?", avatarName, self.ID)
 		if err != nil {
 			return err
@@ -764,7 +797,7 @@ func main() {
 
 	e.GET("add_channel", getAddChannel)
 	e.POST("add_channel", postAddChannel)
-	e.GET("/icons/:file_name", getIcon)
+	// e.GET("/icons/:file_name", getIcon)
 
 	e.Start(":5000")
 }
